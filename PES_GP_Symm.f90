@@ -18,9 +18,9 @@ end module PES_details
 module GP_variables
   double precision, allocatable :: alpha (:), lScale(:), xTraining(:,:), xTrainingPerm(:,:,:)
   double precision expVar,NuggVar, gpEmax
-  integer :: nDim=9
-  integer :: nTraining=28
-  integer :: nPerms=8
+  integer :: nDim=3
+  integer :: nTraining=148
+  integer :: nPerms=6
 end module GP_variables
 
 
@@ -30,23 +30,21 @@ implicit none
  
 integer k,i, choice
 
-double precision rab(9),e, PES, xStar(9)
+double precision e, PES
+double precision, allocatable :: rab
+double precision xStar(3)
 
-xStar(1:9)=(/0.20971571,  0.22605512,  0.22877215,  0.20158676,  0.2298365 , &
-     0.2503203 ,  0.18510657,  0.2182286 ,  0.25385964/)
-xStar(1:9)=(/ 0.3018619 ,  0.33131717,  0.31699997,  0.30609471,  0.34708315, &
-     0.34030303,  0.27652502,  0.3131383 ,  0.31583372 /)
+!!allocate( xStar(nDim))
 
-xStar(1:9)=(/ 0.16918005,  0.20963065,  0.27441895,  0.15582496,  0.18869334, &
-        0.23773219,  0.14123042,  0.16638506,  0.20074532 /)
 
-xStar(1:9)=(/ 0.37918623,  0.43618246,  0.39957494,  0.32684715,  0.42808256, &
-     0.48455317,  0.26286132,  0.34577986,  0.44897025 /)
-
-xStar(1:9)=(/0.3791862300000000129962530, 0.4361824599999999940713735, &
-     0.3995749399999999895705116, 0.3268471499999999752006374, 0.4280825600000000008549250,&
-     0.4845531699999999775130277, 0.2628613200000000094114228, 0.3457798599999999944465401, &
-     0.4489702500000000151558766/)
+xStar(1:3)=(/0.3914942399999999933513095,0.3269332899999999875184642, &
+     0.2852068600000000064831340/)
+xStar(1:3)=(/0.2420432499999999875761603, 0.2236785199999999917963578, &
+     0.1429743199999999880844825/)
+xStar(1:3)=(/0.3601643800000000061878325,0.3275462499999999832489550, &
+     0.2331720899999999985219290/)
+xStar(1:3)=(/0.3617689800000000177604420, 0.2993179400000000045523052,&
+ 0.2172357900000000119344890/)
 
 !xStar(1:9)=(/ 0.24927635,  0.29087296,  0.3123213 ,  0.277394  ,  0.30196993, &
 !        0.29306223,  0.28166435,  0.27929086,  0.25204695 /)
@@ -143,12 +141,6 @@ subroutine load_GP_Data
 
   !====Load hyperparameters====
   write (filename, '( "TrainingData/HyperParams_Symm", I3.3, ".dat" )' )  nTraining
-  !write (filename, '( "TrainingData/myTest.dat" )' )  
-  !open (unit = 7, file = filename)
-  !! Older symmetric way
-  !Only need to read some as others are tied.
-  !!read (7,*) lScale(1),lScale(2), lScale(5), expVar3, expVar2, expVar1,NuggVar, gpEmax
-  
   open (unit = 7, file = filename)
   do i=1,nDim
      read (7,*) dum
@@ -156,25 +148,17 @@ subroutine load_GP_Data
      print *,i,j
      read (7,*) lScale(j)
   end do
-  
   read (7,*) expVar
   read (7,*) NuggVar
   read (7,*) gpEMax
-  
-  !Copy over the tied values
-  lScale(3) = lScale(1) ! 2=0
-  lScale(9) = lScale(1) ! 8=0
-  lScale(7) = lScale(1) ! 6=0
-  
-  lScale(4) = lScale(2) ! 3=1
-  lScale(6) = lScale(2) ! 5=1
-  lScale(8) = lScale(2) ! 7=1
-  !expVar = expVar1 * expVar2 * expVar3
-  print *,"HyperParams, lScale=",lScale(1), lScale(2),lScale(3),lScale(4), lScale(5), &
-       lScale(6),lScale(7),lScale(8),lScale(9)
-  
-  print *,"HyperParams",expVar,NuggVar, gpEmax
   close(7)
+  
+  
+  do i=1,nDim
+     print *,i,lScale(i)
+  end do
+  print *,"HyperParams",expVar,NuggVar, gpEmax
+
   
   !====Load alpha coefficients====
   write (filename, '( "TrainingData/alpha_Symm", I3.3, ".dat" )' )  nTraining
@@ -191,14 +175,13 @@ subroutine load_GP_Data
   open (unit = 7, file = filename)
     
   do i=1,nTraining
-     read (7,*) xTraining(1,i), xTraining(2,i), xTraining(3,i), xTraining(4,i), xTraining(5,i),&
-          xTraining(6,i), xTraining(7,i), xTraining(8,i), xTraining(9,i)
+     read (7,*) xTraining(1,i), xTraining(2,i), xTraining(3,i)
      !print *,xTraining(1,i), xTraining(2,i), xTraining(3,i), xTraining(4,i), xTraining(5,i), &
      !     xTraining(6,i), xTraining(7,i), xTraining(8,i), xTraining(9,i)
   end do
   close(7)
 
-  write (filename, '( "2CO2.sym" )' )
+  write (filename, '( "3Ar.sym" )' )
   open (unit = 7, file = filename)
   read(7,*) perm
 
