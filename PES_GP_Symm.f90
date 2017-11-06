@@ -2,7 +2,7 @@
 !!Distances in Angstrom and energies in Hartrees
 module PES_details
   double precision :: gpRMax = 9.0  
-  double precision :: gpRMin = 1.5  
+  double precision :: gpRMin = 2.5  
   double precision :: lCO = 1.1632
   double precision :: AngToBohr =  1.8897259885789
   interface PES_GP 
@@ -252,13 +252,12 @@ function PES( rab )
 
   repFactor=1.0
   
-  if( rab(1) > gpRMax  .AND.  rab(2) > gpRMax .AND.  rab(3) > gpRMax &
-       ) then !!Use asymptotic function
-     PES = asymp(rab)
+  !! For 3 body interactions any of the distances >RMax means set the non-additive part to zero
+  if ( ANY( rab > gpRMax )  ) then
+     PES=0.0        !!Use asymptotic function (which is zero for non-additive interactions)
      
-  else if (rab(1) < gpRMin/repFactor  .OR.  rab(2) < gpRMin/repFactor  .OR.  rab(3) < gpRMin/repFactor &
-       ) then !! Use repulsive approximation function
-     PES=gpEmax* (1.0/rab(1)**12+1.0/rab(2)**12+1.0/rab(3)**12) *gpRMin **12
+  else if ( ANY( rab > gpRMin/repFactor)  ) then 
+     PES=gpRMin !! Use repulsive approximation function
      
   else !! Use the Guassian Process function
      xStar(:) = 1/rab(:)
