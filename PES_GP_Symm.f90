@@ -39,28 +39,52 @@ double precision xStar(3)
 
 xStar(1:3)=(/0.3914942399999999933513095,0.3269332899999999875184642, &
      0.2852068600000000064831340/)
-xStar(1:3)=(/0.2420432499999999875761603, 0.2236785199999999917963578, &
-     0.1429743199999999880844825/)
-xStar(1:3)=(/0.3601643800000000061878325,0.3275462499999999832489550, &
-     0.2331720899999999985219290/)
-xStar(1:3)=(/0.3617689800000000177604420, 0.2993179400000000045523052,&
- 0.2172357900000000119344890/)
 
-!xStar(1:9)=(/ 0.24927635,  0.29087296,  0.3123213 ,  0.277394  ,  0.30196993, &
-!        0.29306223,  0.28166435,  0.27929086,  0.25204695 /)
 
 call load_GP_Data
 e=PES_GP( xStar)
 !e=PES( rab)
-write(6,*)e
+!write(6,*)e
+
+call EvsE
 
 end
 !
 
+
+subroutine EvsE()
+  use PES_details
+  use GP_variables
+  implicit none
+  double precision, allocatable:: rab(:), xStar(:)
+  double precision dum(9), NonAdd, funcVal, PES
+  integer i,j
+
+  allocate (rab(nDim), xStar(nDim) )
+
+  !====Read test data and compute error====
+  open (unit = 7, file = "testLHC_800.dat")
+  do i=1,812
+        read(7,*) dum
+
+     do j=1,3
+        xStar(j)=dum(j)
+     end do
+     NonAdd=dum(9)
+
+     rab(:) = 1/xStar(:)
+     funcVal = PES(rab)
+     if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 .AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03) then
+        print *, i, rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)/0.005*100
+     endif
+  enddo
+     
+end subroutine EvsE
+
 subroutine fixedAngleSlice()
   use PES_details
   implicit none
-  double precision rab(9)
+  double precision rab(3)
   integer i, itot
   double precision  r, beta1, e, e_GP, asymp, PES
     
@@ -145,7 +169,7 @@ subroutine load_GP_Data
   do i=1,nDim
      read (7,*) dum
      j=int(dum)
-     print *,i,j
+     !print *,i,j
      read (7,*) lScale(j)
   end do
   read (7,*) expVar
@@ -155,9 +179,9 @@ subroutine load_GP_Data
   
   
   do i=1,nDim
-     print *,i,lScale(i)
+     !print *,i,lScale(i)
   end do
-  print *,"HyperParams",expVar,NuggVar, gpEmax
+  !print *,"HyperParams",expVar,NuggVar, gpEmax
 
   
   !====Load alpha coefficients====
@@ -246,7 +270,7 @@ function PES( rab )
   use PES_details
   use GP_variables
   implicit none
-  double precision rab(9), xStar(9), asymp
+  double precision rab(3), xStar(3), asymp
   double precision  PES
   double precision repFactor
 
@@ -256,7 +280,7 @@ function PES( rab )
   if ( ANY( rab > gpRMax )  ) then
      PES=0.0        !!Use asymptotic function (which is zero for non-additive interactions)
      
-  else if ( ANY( rab > gpRMin/repFactor)  ) then 
+  else if ( ANY( rab < gpRMin/repFactor)  ) then 
      PES=gpRMin !! Use repulsive approximation function
      
   else !! Use the Guassian Process function
