@@ -57,24 +57,26 @@ subroutine EvsE()
   use GP_variables
   implicit none
   double precision, allocatable:: rab(:), xStar(:)
-  double precision dum(9), NonAdd, funcVal, PES
+  double precision dum(8), NonAdd, funcVal, PES
   integer i,j
 
   allocate (rab(nDim), xStar(nDim) )
 
   !====Read test data and compute error====
-  open (unit = 7, file = "testLHC_800.dat")
-  do i=1,812
+  open (unit = 7, file = "long10k_CCSDT_rInv-10000.lhc")
+  do i=1,10078
         read(7,*) dum
 
      do j=1,3
         xStar(j)=dum(j)
      end do
-     NonAdd=dum(9)
+     NonAdd=dum(8)
 
      rab(:) = 1/xStar(:)
-     funcVal = PES(rab)
-     if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 .AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03) then
+     !!funcVal = PES(rab)
+     if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 &
+        !.AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03 &
+        ) then
         print *, i, rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)/0.005*100
      endif
   enddo
