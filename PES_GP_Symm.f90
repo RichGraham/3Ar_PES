@@ -47,6 +47,7 @@ e=PES_GP( xStar)
 !write(6,*)e
 
 call EvsE
+!!call fixedAngleSlice
 
 end
 !
@@ -57,14 +58,20 @@ subroutine EvsE()
   use GP_variables
   implicit none
   double precision, allocatable:: rab(:), xStar(:)
-  double precision dum(8), NonAdd, funcVal, PES
-  integer i,j
+  double precision dum(8), NonAdd, funcVal, PES, RMSE, mean
+  integer i,j, count
 
   allocate (rab(nDim), xStar(nDim) )
 
   !====Read test data and compute error====
-  open (unit = 7, file = "long10k_CCSDT_rInv-10000.lhc")
-  do i=1,10078
+  open (unit = 7, file = "testLHC_800.dat")
+  open (unit=15, file="PES_Err.dat ", status='replace')
+
+  
+  RMSE=0
+  mean=0
+  count=0
+  do i=1,812!!10078
         read(7,*) dum
 
      do j=1,3
@@ -73,25 +80,33 @@ subroutine EvsE()
      NonAdd=dum(8)
 
      rab(:) = 1/xStar(:)
-     !!funcVal = PES(rab)
+     funcVal = PES(rab)
      if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 &
         !.AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03 &
         ) then
-        print *, i, rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)/0.005*100
+        write(15,*), i, rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)
+        RMSE = RMSE + Sqrt((NonAdd-funcVal)**2)
+        mean = mean + Sqrt((NonAdd)**2)
+        count = count +1
      endif
   enddo
+
+  print *,RMSE/(1.0*count), mean/(1.0*count), mean/RMSE
      
 end subroutine EvsE
 
 subroutine fixedAngleSlice()
   use PES_details
+  use GP_variables
   implicit none
-  double precision rab(3)
-  integer i, itot
-  double precision  r, beta1, e, e_GP, asymp, PES
-    
+  double precision, allocatable:: rab(:), xStar(:)
+  double precision dum(8), NonAdd, funcVal, PES,r,e
+  integer i,j,itot
+
+  allocate (rab(nDim), xStar(nDim) )
+  
   itot=500
-  beta1 =  0   /180.0*3.14159265359
+  
 
   open (unit=15, file="PES_Out.dat ", status='replace')
   
@@ -100,12 +115,13 @@ subroutine fixedAngleSlice()
      ! specify centre-to-centre separation
      r = (  0.5 + 15.0*i/(1.0*itot) ) 
 
-     call computeDistances(r,beta1,rab)
-     
+     rab(1)=2.91
+     rab(2)=r-2.91
+     rab(3)=r
      
      e=PES( rab)
      !e_GP = PES_GP( xStar)
-     write(15,*) r , e 
+     write(15,*) r , e , 4.000E-007
      
   enddo
   write(6,*)'Written to file: PES_Out.dat '
