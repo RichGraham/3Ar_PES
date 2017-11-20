@@ -19,7 +19,7 @@ module GP_variables
   double precision, allocatable :: alpha (:), lScale(:), xTraining(:,:), xTrainingPerm(:,:,:)
   double precision expVar,NuggVar, gpEmax
   integer :: nDim=3
-  integer :: nTraining=148
+  integer :: nTraining=161
   integer :: nPerms=6
 end module GP_variables
 
@@ -37,17 +37,33 @@ double precision xStar(3)
 !!allocate( xStar(nDim))
 
 
-xStar(1:3)=(/0.3914942399999999933513095,0.3269332899999999875184642, &
-     0.2852068600000000064831340/)
+xStar(1:3)=(/0.3595111400000000068111206,0.2860995399999999855289445, &
+     0.2801690199999999908442305/)
 
+xStar(1:3)=(/0.3331502100000000021751134, 0.3260882999999999976026288, &
+     0.2039624999999999910293980/)
+
+xStar(1:3)=(/0.3992589799999999855550925, 0.3779625200000000240230236, &
+     0.2954577199999999792545680/)
+
+xStar(1:3)=(/0.3004692999999999947213780,0.2998323600000000199727879, &
+     0.1819913700000000134071598/)
+
+xStar(1:3)=(/3.4364261e-01 ,  1.1842219e-01 ,  8.8071872e-02/)
+
+xStar(1:3)=(/3.4364261e-01 ,  2.3582520e-01,   1.3985175e-01/)
+
+xStar(1:3)=(/3.4364261e-01  , 2.8349597e-01 ,  1.5534253e-01/)
+
+!xStar(1:3)=(/0.2765329200000000153814028 ,0.2449013399999999951450746, &
+!     0.1726287499999999974775733/)
 
 call load_GP_Data
 e=PES_GP( xStar)
-!e=PES( rab)
-!write(6,*)e
+write(6,*)e
 
-call EvsE
-!!call fixedAngleSlice
+!call EvsE
+call fixedAngleSlice
 
 end
 !
@@ -58,26 +74,26 @@ subroutine EvsE()
   use GP_variables
   implicit none
   double precision, allocatable:: rab(:), xStar(:)
-  double precision dum(8), NonAdd, funcVal, PES, RMSE, mean
+  double precision dum(9), NonAdd, funcVal, PES, RMSE, mean
   integer i,j, count
 
   allocate (rab(nDim), xStar(nDim) )
 
   !====Read test data and compute error====
-  open (unit = 7, file = "testLHC_800.dat")
+  open (unit = 7, file = "hiQ_test1_CCSDT_rInv-4000.lhc")
   open (unit=15, file="PES_Err.dat ", status='replace')
 
   
   RMSE=0
   mean=0
   count=0
-  do i=1,812!!10078
+  do i=1,4081 !!10078
         read(7,*) dum
 
      do j=1,3
         xStar(j)=dum(j)
      end do
-     NonAdd=dum(8)
+     NonAdd=dum(9)
 
      rab(:) = 1/xStar(:)
      funcVal = PES(rab)
@@ -91,7 +107,7 @@ subroutine EvsE()
      endif
   enddo
 
-  print *,RMSE/(1.0*count), mean/(1.0*count), mean/RMSE
+  print *,RMSE/(1.0*count), mean/(1.0*count), mean/RMSE, count
      
 end subroutine EvsE
 
@@ -121,7 +137,7 @@ subroutine fixedAngleSlice()
      
      e=PES( rab)
      !e_GP = PES_GP( xStar)
-     write(15,*) r , e , 4.000E-007
+     write(15,*) r , e , 3.000E-007
      
   enddo
   write(6,*)'Written to file: PES_Out.dat '
