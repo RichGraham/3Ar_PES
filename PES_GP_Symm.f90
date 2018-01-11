@@ -1,7 +1,7 @@
 !!CO2-Ar PES
 !!Distances in Angstrom and energies in Hartrees
 module PES_details
-  double precision :: gpRMax = 9.0  
+  double precision :: gpRMax = 8.5  
   double precision :: gpRMin = 2.5  
   double precision :: lCO = 1.1632
   double precision :: AngToBohr =  1.8897259885789
@@ -19,7 +19,7 @@ module GP_variables
   double precision, allocatable :: alpha (:), lScale(:), xTraining(:,:), xTrainingPerm(:,:,:)
   double precision expVar,NuggVar, gpEmax
   integer :: nDim=3
-  integer :: nTraining=161
+  integer :: nTraining=337
   integer :: nPerms=6
 end module GP_variables
 
@@ -40,20 +40,26 @@ double precision xStar(3)
 xStar(1:3)=(/0.3595111400000000068111206,0.2860995399999999855289445, &
      0.2801690199999999908442305/)
 
-xStar(1:3)=(/0.3331502100000000021751134, 0.3260882999999999976026288, &
-     0.2039624999999999910293980/)
+xStar(1:3)=(/0.3436426100000000150025414,0.1184221899999999966235364, &
+     0.0880718719999999954950454/)
 
-xStar(1:3)=(/0.3992589799999999855550925, 0.3779625200000000240230236, &
-     0.2954577199999999792545680/)
+xStar(1:3)=(/0.3436426100000000150025414,0.1244827099999999964197173, &
+     0.0913805810000000023896050/)
 
-xStar(1:3)=(/0.3004692999999999947213780,0.2998323600000000199727879, &
-     0.1819913700000000134071598/)
+!xStar(1:3)=(/0.3331502100000000021751134, 0.3260882999999999976026288, &
+!     0.2039624999999999910293980/)
 
-xStar(1:3)=(/3.4364261e-01 ,  1.1842219e-01 ,  8.8071872e-02/)
+!xStar(1:3)=(/0.3992589799999999855550925, 0.3779625200000000240230236, &
+!     0.2954577199999999792545680/)
 
-xStar(1:3)=(/3.4364261e-01 ,  2.3582520e-01,   1.3985175e-01/)
+!xStar(1:3)=(/0.3004692999999999947213780,0.2998323600000000199727879, &
+!     0.1819913700000000134071598/)
 
-xStar(1:3)=(/3.4364261e-01  , 2.8349597e-01 ,  1.5534253e-01/)
+!xStar(1:3)=(/3.4364261e-01 ,  1.1842219e-01 ,  8.8071872e-02/)
+
+!xStar(1:3)=(/3.4364261e-01 ,  2.3582520e-01,   1.3985175e-01/)
+
+!xStar(1:3)=(/3.4364261e-01  , 2.8349597e-01 ,  1.5534253e-01/)
 
 !xStar(1:3)=(/0.2765329200000000153814028 ,0.2449013399999999951450746, &
 !     0.1726287499999999974775733/)
@@ -306,14 +312,19 @@ function PES( rab )
   implicit none
   double precision rab(3), xStar(3), asymp
   double precision  PES
-  double precision repFactor
+  double precision repFactor, oldr3
 
   repFactor=1.0
   
   !! For 3 body interactions any of the distances >RMax means set the non-additive part to zero
   if ( ANY( rab > gpRMax )  ) then
-     PES=0.0        !!Use asymptotic function (which is zero for non-additive interactions)
-     
+        oldr3=rab(3)
+        rab(2)=rab(2)-(oldr3-gpRMax)
+        rab(3)=gpRMax
+        xStar(:) = 1/rab(:)
+        PES = PES_GP( xStar) * (gpRMax/oldr3)**8
+
+        
   else if ( ANY( rab < gpRMin/repFactor)  ) then 
      PES=gpRMin !! Use repulsive approximation function
      
