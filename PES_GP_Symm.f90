@@ -316,86 +316,84 @@ function PES( rab )
   implicit none
   double precision rab(3), xStar(3), asymp
   double precision  PES
-  double precision repFactor, oldr3, r13MIN, r13old,r23old, r13new, r23new
+  double precision repFactor, oldr3, r13MIN,  r13new, r23new, r12new,temp
   double precision cosTheta !![angle between Ar3 and centre of 1,2]
   double precision xnew !! x [distance between 3 and centre of 1,2]
-  
+  integer FLAG
+
+  FLAG=0
   r13MIN=5.5
   repFactor=1.0
-  
-  !! For 3 body interactions any of the distances >RMax means set the non-additive part to zero
-  !! Old way of doing power law aymptote
-  !!if ( ANY( rab > gpRMax )  ) then
-  !!      oldr3=rab(3)
-  !!      rab(2)=rab(2)-(oldr3-gpRMax)
-  !!      rab(3)=gpRMax
-  !!      xStar(:) = 1/rab(:)
-  !!      PES = 0*PES_GP( xStar) * (gpRMax/oldr3)**8
-  if ( rab(2) > r13MIN ) then
 
-     r13old = rab(2)
-     r23old = rab(3)
+
+  r12new=rab(1)
+  r13new=rab(2)
+  r23new=rab(3)
+
+  !!! Sort vectors
+  if (r12new > r13new) then 
+     temp=r12new
+     r12new=r13new
+     r13new=temp
+  endif
+  if (r13new > r23new) then
+     temp=r13new
+     r13new=r23new
+     r23new=temp
+  endif
+  if (r12new > r13new) then 
+     temp=r12new
+     r12new=r13new
+     r13new=temp
+  endif
+
+  !write(6,*) r12new, r13new,r23new, rab(1), rab(2), rab(3)
+
      
+  if( r12new > r13MIN) then
+     FLAG=1
+     r12new=r13MIN
+  endif !!r12new > r13MIN
+  
+  if ( r13new > r13MIN ) then
+     FLAG=1    
      !!====Slide along x until r13=r13MIN
      !! compute cosTheta (this is fixed throughout)
-     cosTheta= (rab(3)**2-rab(2)**2)/rab(1)/Sqrt(2.0*(rab(2)**2+rab(3)**2)-rab(1)**2)
+     cosTheta= (r23new**2-r13new**2)/r12new/Sqrt(2.0*(r13new**2+r23new**2)-r12new**2)
+     !!cosTheta= (rab(3)**2-rab(2)**2)/rab(1)/Sqrt(2.0*(rab(2)**2+rab(3)**2)-rab(1)**2)
 
      !! change x so that r13=r13MIN
-     xnew= 0.5 *( cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * r13MIN**2 ) )
+     xnew= 0.5 *( cosTheta*r12new + Sqrt( r12new**2*(-1.0 + cosTheta**2)  +  4.0 * r13MIN**2 ) )
+     !xnew= 0.5 *( cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * r13MIN**2 ) )
      
-     r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
-     r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
-
-     !!rab(2)= r13new
-     !!rab(3)= r23new
-     
-     write(6,*),cosTheta, r13new, r23new
-
-     if( r23new > gpRMax) then
-        xnew= 0.5 *( -cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
-        r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
-        r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
-        !!r13old = rab(2)
-        !!rab(2)= r13new
-        !!rab(3)= r23new
-        
-        write(6,*),'2nd', cosTheta, r13new, r23new
-        
-     endif
-
-
-     write(6,*), rab(1), r13new, r23new
-     write(6,*)
-     xStar(1) = 1/rab(1)
-     xStar(2)=1/r13new
-     xStar(3)=1/r23new
-     !!PES = PES_GP( xStar) * (r13new/r13old)**6
-     PES = PES_GP( xStar) * (r13new/r13old)**3*(r23new/r23old)**3
-     return
+     r13new = Sqrt(r12new**2/4.0 + xnew*xnew - r12new*xnew*cosTheta)
+     r23new = Sqrt(r12new**2/4.0 + xnew*xnew + r12new*xnew*cosTheta)
+     !r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
+     !r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
   endif !!rab(2) > r13MIN
 
-  if( rab(3) >  gpRMax) then
-     r23old = rab(3)
-     r13old = rab(2)
-     cosTheta= (rab(3)**2-rab(2)**2)/rab(1)/Sqrt(2.0*(rab(2)**2+rab(3)**2)-rab(1)**2)
-     xnew= 0.5 *( -cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
-     r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
-     r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
-     !!r13old = rab(2)
-     !!rab(2)= r13new
-     !!rab(3)= r23new
-     
-     write(6,*),'3rd', cosTheta, r13new, r23new
-     
-     
-     xStar(1) = 1/rab(1)
+  if( r23new >  gpRMax) then
+     FLAG=1
+     !!Slide along x until r23=gpRMax
+     cosTheta= (r23new**2-r13new**2)/r12new/Sqrt(2.0*(r13new**2+r23new**2)-r12new**2)
+     xnew= 0.5 *( -cosTheta*r12new + Sqrt( r12new**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
+     r13new = Sqrt(r12new**2/4.0 + xnew*xnew - r12new*xnew*cosTheta)
+     r23new = Sqrt(r12new**2/4.0 + xnew*xnew + r12new*xnew*cosTheta)
+     !cosTheta= (rab(3)**2-rab(2)**2)/rab(1)/Sqrt(2.0*(rab(2)**2+rab(3)**2)-rab(1)**2)
+     !xnew= 0.5 *( -cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
+     !r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
+     !r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
+  endif !!rab(3)>gpRMax
+  
+  !!If flag has been set then compute with GP using scaled distances then use power law to extrapolate to required distances for rab
+  if(FLAG>0) then
+     xStar(1) = 1/r12new
      xStar(2)=1/r13new
      xStar(3)=1/r23new
-     !!PES = PES_GP( xStar) * (r13new/r13old)**6
-     PES = PES_GP( xStar) * (r13new/r13old)**3*(r23new/r23old)**3
+     PES = PES_GP( xStar) * ( r12new/rab(1) * r13new/rab(2) * r23new/rab(3) )**3
      return
   endif
-     
+
      
   if ( ANY( rab < gpRMin/repFactor)  ) then 
      PES=gpRMin !! Use repulsive approximation function
