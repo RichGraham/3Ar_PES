@@ -65,11 +65,11 @@ xStar(1:3)=(/0.3436426100000000150025414,0.1244827099999999964197173, &
 !     0.1726287499999999974775733/)
 
 call load_GP_Data
-e=PES_GP( xStar)
-write(6,*)e
+!e=PES_GP( xStar)
+!write(6,*)e
 
-!call EvsE
-call fixedAngleSlice
+call EvsE
+!call fixedAngleSlice
 
 end
 !
@@ -81,19 +81,26 @@ subroutine EvsE()
   implicit none
   double precision, allocatable:: rab(:), xStar(:)
   double precision dum(9), NonAdd, funcVal, PES, RMSE, mean
-  integer i,j, count
+  integer i,j, count, nPoints
 
   allocate (rab(nDim), xStar(nDim) )
 
   !====Read test data and compute error====
-  open (unit = 7, file = "hiQ_test1_CCSDT_rInv-4000.lhc")
+  !open (unit = 7, file = "hiQ_test1_CCSDT_rInv-4000.lhc")
+  !nPoints=4081
+  !open (unit = 7, file = "hiQ_scaleTh90_CCSDT_rInv-128.lhc")
+  !nPoints=125
+  open (unit = 7, file = "hiQ_scaleTh60_CCSDT_rInv-100.lhc")
+  nPoints=99
+  !open (unit = 7, file = "hiQ_scaleTh0_CCSDT_rInv-100.lhc")
+  !nPoints=60
   open (unit=15, file="PES_Err.dat ", status='replace')
 
   
   RMSE=0
   mean=0
   count=0
-  do i=1,4081 !!10078
+  do i=1,nPoints !!10078
         read(7,*) dum
 
      do j=1,3
@@ -106,7 +113,7 @@ subroutine EvsE()
      if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 &
         !.AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03 &
         ) then
-        write(15,*), i, rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)
+        write(15,*), 1.0/rab(1)/rab(2)/rab(3), rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)
         RMSE = RMSE + Sqrt((NonAdd-funcVal)**2)
         mean = mean + Sqrt((NonAdd)**2)
         count = count +1
@@ -316,7 +323,7 @@ function PES( rab )
   implicit none
   double precision rab(3), xStar(3), asymp
   double precision  PES
-  double precision repFactor, oldr3, r13MIN,  r13new, r23new, r12new,temp
+  double precision repFactor, oldr3, r13MIN,  r13new, r23new, r12new,temp, scale
   double precision cosTheta !![angle between Ar3 and centre of 1,2]
   double precision xnew !! x [distance between 3 and centre of 1,2]
   integer FLAG
@@ -351,8 +358,14 @@ function PES( rab )
 
      
   if( r12new > r13MIN) then
+     !!Scale down all distances so that r12=r13Min (5.5A)
      FLAG=1
-     r12new=r13MIN
+     scale=r13Min/r12new
+     !r12new=r13MIN
+     r12new=r12new*scale
+     r13new=r13new*scale
+     r23new=r23new*scale
+     !write(6,*)'Should be 5.5',r12new
   endif !!r12new > r13MIN
   
   if ( r13new > r13MIN ) then
@@ -370,19 +383,28 @@ function PES( rab )
      r23new = Sqrt(r12new**2/4.0 + xnew*xnew + r12new*xnew*cosTheta)
      !r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
      !r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
+
+     
+     
   endif !!rab(2) > r13MIN
 
   if( r23new >  gpRMax) then
      FLAG=1
+     
      !!Slide along x until r23=gpRMax
-     cosTheta= (r23new**2-r13new**2)/r12new/Sqrt(2.0*(r13new**2+r23new**2)-r12new**2)
-     xnew= 0.5 *( -cosTheta*r12new + Sqrt( r12new**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
-     r13new = Sqrt(r12new**2/4.0 + xnew*xnew - r12new*xnew*cosTheta)
-     r23new = Sqrt(r12new**2/4.0 + xnew*xnew + r12new*xnew*cosTheta)
-     !cosTheta= (rab(3)**2-rab(2)**2)/rab(1)/Sqrt(2.0*(rab(2)**2+rab(3)**2)-rab(1)**2)
-     !xnew= 0.5 *( -cosTheta*rab(1) + Sqrt( rab(1)**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
-     !r13new = Sqrt(rab(1)**2/4.0 + xnew*xnew - rab(1)*xnew*cosTheta)
-     !r23new = Sqrt(rab(1)**2/4.0 + xnew*xnew + rab(1)*xnew*cosTheta)
+     !cosTheta= (r23new**2-r13new**2)/r12new/Sqrt(2.0*(r13new**2+r23new**2)-r12new**2)
+     !xnew= 0.5 *( -cosTheta*r12new + Sqrt( r12new**2*(-1.0 + cosTheta**2)  +  4.0 * gpRMax**2 ) )
+     !r13new = Sqrt(r12new**2/4.0 + xnew*xnew - r12new*xnew*cosTheta)
+     !r23new = Sqrt(r12new**2/4.0 + xnew*xnew + r12new*xnew*cosTheta)
+
+     !!Scale down all distances so that r23=gpRMax (8.5A)
+     scale=gpRMax/r23new
+     r12new=r12new*scale
+     r13new=r13new*scale
+     r23new=r23new*scale
+     !!write(6,*) r12new,r13new, r23new
+     !!write(6,*)'Should be 8.5',r23new
+     
   endif !!rab(3)>gpRMax
   
   !!If flag has been set then compute with GP using scaled distances then use power law to extrapolate to required distances for rab
