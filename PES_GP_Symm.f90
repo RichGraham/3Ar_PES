@@ -31,7 +31,7 @@ implicit none
 integer k,i, choice
 
 double precision e, PES
-double precision, allocatable :: rab
+double precision, allocatable :: rab(:)
 double precision xStar(3)
 
 !!allocate( xStar(nDim))
