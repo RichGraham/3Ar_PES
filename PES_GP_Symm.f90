@@ -418,7 +418,7 @@ function PES( rab )
 
      
   if ( ANY( rab < gpRMin/repFactor)  ) then 
-     PES=gpRMin !! Use repulsive approximation function
+     PES=0.0 !! Use repulsive approximation function
      return
   endif
   
