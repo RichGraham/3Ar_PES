@@ -1,10 +1,9 @@
 !!CO2-Ar PES
 !!Distances in Angstrom and energies in Hartrees
 module PES_details
-  double precision :: gpRMax = 8.5
+  !!  double precision :: gpRMax = 8.5
+  double precision :: gpRMax = 1000.0
   double precision :: gpRMin = 2.5  
-  double precision :: lCO = 1.1632
-  double precision :: AngToBohr =  1.8897259885789
   interface PES_GP 
      function PES_GP(xStar) 
        implicit none 
@@ -19,8 +18,14 @@ module GP_variables
   double precision, allocatable :: alpha (:), lScale(:), xTraining(:,:), xTrainingPerm(:,:,:)
   double precision expVar,NuggVar, gpEmax
   integer :: nDim=3
-  integer :: nTraining=337
   integer :: nPerms=6
+  !character (len=20) :: label=''
+  !integer :: nTraining=337
+  
+  character (len=20) :: label='lq_'
+  integer :: nTraining=999
+  !integer :: nTraining=350
+
 end module GP_variables
 
 
@@ -64,11 +69,13 @@ xStar(1:3)=(/0.3436426100000000150025414,0.1244827099999999964197173, &
 !xStar(1:3)=(/0.2765329200000000153814028 ,0.2449013399999999951450746, &
 !     0.1726287499999999974775733/)
 
-call load_GP_Data
-!e=PES_GP( xStar)
-!write(6,*)e
+xStar(1:3)=(/ 0.28306178,   0.23779215 ,  0.13116063 /)
 
-call EvsE
+call load_GP_Data
+e=PES_GP( xStar)
+write(6,*)e
+
+!call EvsE
 !call fixedAngleSlice
 
 end
@@ -113,7 +120,7 @@ subroutine EvsE()
      if( dum(4)<0.005 .AND. dum(5)<0.005 .AND. dum(6)<0.005 &
         !.AND. Sqrt((NonAdd-funcVal)**2)/0.005*100> 0.03 &
         ) then
-        write(15,*), 1.0/rab(1)/rab(2)/rab(3), rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)
+        write(15,*) 1.0/rab(1)/rab(2)/rab(3), rab(1), rab(2), rab(3), NonAdd, funcVal, Sqrt((NonAdd-funcVal)**2)
         RMSE = RMSE + Sqrt((NonAdd-funcVal)**2)
         mean = mean + Sqrt((NonAdd)**2)
         count = count +1
@@ -164,37 +171,6 @@ end subroutine fixedAngleSlice
   
   
   
-subroutine computeDistances(r,beta1, rab)
-  use PES_details
-  implicit none
-  double precision  rab(3), r, beta1
-  integer ia, ib, ir,k
-
-  rab(1)=r
-  rab(2)= SQRT( (lCO*SIN(beta1))**2 +(lCO*COS(beta1)-r)**2  )
-  rab(3)= SQRT( (lCO*SIN(beta1))**2 +(lCO*COS(beta1)+r)**2  )
-   
-end subroutine
-
-double precision function asymp(rab)
-  use PES_details
-  implicit none
-  double precision rab(3)
-  double precision c1,c2,c3, cAr, o1Ar, o2Ar
-
-  c1= (  rab(1)**2 + lCO**2 - rab(2)**2)/2.0/rab(1)/lCO
-  
-  c2= (  rab(2)**2 + lCO**2 - rab(1)**2)/2.0/rab(2)/lCO
-  c3= (  rab(3)**2 + lCO**2 - rab(1)**2)/2.0/rab(3)/lCO
-
-
-  cAr  = - ( 4.64 * (1 + 3*c1**2)  +  3.30 * (5 - 3*c1**2) ) / (rab(1)*AngToBohr)**6
-  o1Ar = - ( 8.69 * (1 + 3*c2**2)  +  4.76 * (5 - 3*c2**2) ) / (rab(2)*AngToBohr)**6
-  o2Ar = - ( 8.69 * (1 + 3*c3**2)  +  4.76 * (5 - 3*c3**2) ) / (rab(3)*AngToBohr)**6
-  
-  asymp= cAr + o1Ar + o2Ar
-end
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Gaussian Process Code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!pom
 
@@ -208,15 +184,16 @@ subroutine load_GP_Data
   double precision, allocatable::  xStar(:)
   integer i,j,k
   double precision :: dum, expVar1, expVar2,expVar3
-  character (len=90) :: filename
+  character (len=99) :: filename, subname
   integer, allocatable:: perm(:,:)
 
   allocate (alpha(nTraining), lScale(nDim), xTraining(nDim,nTraining),xTrainingPerm(nDim,nPerms,nTraining), xStar(nDim), &
        perm(nDim,nPerms))
 
   !====Load hyperparameters====
-  write (filename, '( "TrainingData/HyperParams_Symm", I3.3, ".dat" )' )  nTraining
-  open (unit = 7, file = filename)
+  subname = "TrainingData/"//trim(adjustl(label))//"HyperParams_Symm"
+  write (filename,'(A90,I3.3,".dat")') trim(adjustl(subname)), nTraining
+  open (unit = 7, file = adjustl(filename),Status='old')
   do i=1,nDim
      read (7,*) dum
      j=int(dum)
@@ -236,8 +213,9 @@ subroutine load_GP_Data
 
   
   !====Load alpha coefficients====
-  write (filename, '( "TrainingData/alpha_Symm", I3.3, ".dat" )' )  nTraining
-  open (unit = 7, file = filename)
+  subname = "TrainingData/"//trim(adjustl(label))//"alpha_Symm"
+  write (filename,'(A90,I3.3,".dat")') trim(adjustl(subname)), nTraining
+  open (unit = 7, file = adjustl(filename),Status='old')
   do i=1,nTraining
      read (7,*) alpha(i)
      !!print *,"alpha ",i, alpha(i)
@@ -246,8 +224,10 @@ subroutine load_GP_Data
 
 
   !====Load training data x values ====
-  write (filename, '( "TrainingData/xTraining", I3.3, ".dat" )' )  nTraining
-  open (unit = 7, file = filename)
+  subname = "TrainingData/"//trim(adjustl(label))//"xTraining"
+  write (filename,'(A90,I3.3,".dat")') trim(adjustl(subname)), nTraining
+  print *,adjustl(filename)
+  open (unit = 7, file = adjustl(filename),Status='old')
     
   do i=1,nTraining
      read (7,*) xTraining(1,i), xTraining(2,i), xTraining(3,i)
@@ -257,7 +237,7 @@ subroutine load_GP_Data
   close(7)
 
   write (filename, '( "3Ar.sym" )' )
-  open (unit = 7, file = filename)
+  open (unit = 7, file = filename,Status='old')
   read(7,*) perm
 
   !do i=1,nPerms
@@ -321,7 +301,7 @@ function PES( rab )
   use PES_details
   use GP_variables
   implicit none
-  double precision rab(3), xStar(3), asymp
+  double precision rab(3), xStar(3)
   double precision  PES
   double precision repFactor, oldr3, r13MIN,  r13new, r23new, r12new,temp, scale
   double precision cosTheta !![angle between Ar3 and centre of 1,2]
